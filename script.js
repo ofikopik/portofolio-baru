@@ -41,9 +41,13 @@
         if (e.key === "Escape") setMenu(false);
     });
 
+    document.addEventListener("click", function (e) {
+        if (navLinks.classList.contains("open") && !e.target.closest(".navbar")) setMenu(false);
+    });
+
     /* ---------- 3. Typing effect ---------- */
     var typedEl = document.getElementById("typed");
-    var roles = ["Student", "Web Learner", "Future Developer", "Curious Builder"];
+    var roles = ["Student", "Web Learner", "2D Animator", "3D Animator", "Future Developer"];
     var roleIndex = 0;
     var charIndex = 0;
     var deleting = false;
@@ -193,6 +197,111 @@
         showToast("Copied " + text + " ✓");
     });
 
-    /* ---------- 9. Footer year ---------- */
+    /* ---------- 9. Projects: filter buttons ---------- */
+    var filterBtns = document.querySelectorAll(".filter");
+    var projectCards = document.querySelectorAll(".project-card");
+
+    filterBtns.forEach(function (btn) {
+        btn.addEventListener("click", function () {
+            var wanted = btn.getAttribute("data-filter");
+
+            filterBtns.forEach(function (b) {
+                var on = b === btn;
+                b.classList.toggle("active", on);
+                b.setAttribute("aria-pressed", String(on));
+            });
+
+            projectCards.forEach(function (card) {
+                var categories = " " + card.getAttribute("data-category") + " ";
+                var show = wanted === "all" || categories.indexOf(" " + wanted + " ") > -1;
+                card.hidden = !show;
+                if (show) card.classList.add("visible");
+            });
+        });
+    });
+
+    /* ---------- 10. Project pictures: fallback + viewer (lightbox) ---------- */
+    var thumbs = document.querySelectorAll(".project-thumb");
+
+    // If a picture file is missing, show the colored box instead of a broken image.
+    thumbs.forEach(function (thumb) {
+        var img = thumb.querySelector("img");
+        function missing() { thumb.classList.add("no-img"); }
+
+        if (!img) { missing(); return; }
+        img.addEventListener("error", missing);
+        if (img.complete && img.naturalWidth === 0) missing();
+    });
+
+    var lightbox = document.getElementById("lightbox");
+    var lbMedia = document.getElementById("lightboxMedia");
+    var lbCaption = document.getElementById("lightboxCaption");
+    var lbClose = document.getElementById("lightboxClose");
+    var lbReturnFocus = null;
+    var lbTimer;
+
+    function openLightbox(thumb) {
+        var video = thumb.getAttribute("data-video");
+        var img = thumb.querySelector("img");
+        var missing = thumb.classList.contains("no-img");
+        if (missing && !video) return;                 // nothing to show yet
+
+        var title = thumb.getAttribute("data-title") || "";
+        var media;
+
+        if (video) {
+            media = document.createElement("video");
+            media.src = video;
+            media.controls = true;
+            media.autoplay = true;
+            media.playsInline = true;
+            if (img && !missing) media.poster = img.currentSrc || img.src;
+        } else {
+            media = document.createElement("img");
+            media.src = img.currentSrc || img.src;
+            media.alt = title;
+        }
+
+        clearTimeout(lbTimer);
+        lbMedia.textContent = "";
+        lbMedia.appendChild(media);
+        lbCaption.textContent = title;
+
+        lbReturnFocus = document.activeElement;
+        lightbox.hidden = false;
+        root.classList.add("lock");
+        requestAnimationFrame(function () { lightbox.classList.add("show"); });
+        lbClose.focus();
+    }
+
+    function closeLightbox() {
+        if (lightbox.hidden) return;
+
+        var playing = lbMedia.querySelector("video");
+        if (playing) playing.pause();
+
+        lightbox.classList.remove("show");
+        root.classList.remove("lock");
+        lbTimer = setTimeout(function () {
+            lightbox.hidden = true;
+            lbMedia.textContent = "";
+        }, reduceMotion ? 0 : 250);
+
+        if (lbReturnFocus) lbReturnFocus.focus();
+    }
+
+    thumbs.forEach(function (thumb) {
+        thumb.addEventListener("click", function () { openLightbox(thumb); });
+    });
+
+    lightbox.addEventListener("click", function (e) {
+        if (e.target === lightbox || e.target === lbClose) closeLightbox();
+    });
+
+    document.addEventListener("keydown", function (e) {
+        if (e.key === "Escape") closeLightbox();
+    });
+
+    /* ---------- 11. Footer year ---------- */
     document.getElementById("year").textContent = new Date().getFullYear();
 })();
